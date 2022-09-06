@@ -1,0 +1,22 @@
+name: Default CI Build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: make JOBS=2
+      
+    - name: Install
+      run: make install
+      
