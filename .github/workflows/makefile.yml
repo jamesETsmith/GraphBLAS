@@ -18,5 +18,5 @@ jobs:
       run: make JOBS=2
       
     - name: Install
-      run: make install
+      run: sudo make install
       
