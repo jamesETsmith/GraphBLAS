@@ -63,7 +63,7 @@ __inline__ __device__ T warp_ReduceSum(thread_block_tile<warp_sz> g, T val)
     for (int i = g.size() / 2; i > 0; i /= 2)
     {
         T next = g.shfl_down( val, i) ;
-        val = GB_ADD( val, next ); 
+        GB_ADD( val, val, next ); 
     }
     return val; // note: only thread 0 will return full sum
 }
@@ -149,7 +149,8 @@ __global__ void AxB_dot3_phase3_dndn
         int64_t i = Mi[pair_id];
         int64_t kk = Ci[pair_id] >> 4;      // FIXME: can remove ">> 4"
         bool cij_exists = false ;
-        T_Z cij = GB_IDENTITY ;
+//      T_Z cij = GB_IDENTITY ;
+        GB_DECLARE_MONOID_IDENTITY (cij) ;
 
         // skip if C(i,j) is a prezombie
         if (kk >= 0)
@@ -181,20 +182,17 @@ __global__ void AxB_dot3_phase3_dndn
             #if GB_A_IS_FULL && GB_B_IS_FULL
             {
                 cij_exists = true ;
-                GB_GETA ( aki, Ax, pA+threadIdx.x) ;        // aki = A(0,i)
-                GB_GETB ( bkj, Bx, pB+threadIdx.x) ;        // bkj = B(0,j)
-                GB_C_MULT ( cij, aki, bkj ) ;               // cij = aki * bkj
-                for ( int64_t k = threadIdx.x + s; k < nnzA; k+= s)
+                for ( k = threadIdx.x ; k < nnzA ; k += s)
                 { 
                     // cij += A(k,i) * B(k,j)
                     GB_GETA (aki, Ax, pA+k) ;           // aki = A(k,i)
                     GB_GETB (bkj, Bx, pB+k) ;           // bkj = B(k,j)
-                    GB_MULTADD ( cij, aki, bkj ) ;        // cij += aki * bkj
+                    GB_MULTADD ( cij, aki, bkj, i, k, j ) ; // cij += aki * bkj
                 }
             }
             #elif GB_A_IS_BITMAP && GB_B_IS_BITMAP
             {
-                for ( int64_t k = threadIdx.x ; k < nnzA; k+= s)
+                for ( int64_t k = threadIdx.x ; k < nnzA ; k += s)
                 { 
                     GB_GETA (aki, Ax, pA+k) ;           // aki = A(k,i)
                     GB_GETB (bkj, Bx, pB+k) ;           // bkj = B(k,j)
@@ -202,32 +200,32 @@ __global__ void AxB_dot3_phase3_dndn
                     cij_exists |= b ;
                     if (b)
                     {
-                        GB_MULTADD ( cij, aki, bkj ) ;        // cij += aki * bkj
+                        GB_MULTADD ( cij, aki, bkj, i, k, j ) ;        // cij += aki * bkj
                     }
                 }
             }
             #elif GB_A_IS_FULL && GB_B_IS_BITMAP
             {
-                for ( int tid = threadIdx.x ; tid < nnzA; tid+= s)
+                for ( int64_t k = threadIdx.x ; k < nnzA ; k += s)
                 { 
-                    if (Bb [pB+tid])
+                    if (Bb [pB+k])
                     {
-                        GB_GETA (aki, Ax, pA+tid) ;           // aki = A(k,i)
-                        GB_GETB (bkj, Bx, pB+tid) ;           // bkj = B(k,j)
-                        GB_MULTADD ( cij, aki, bkj ) ;        // cij += aki * bkj
+                        GB_GETA (aki, Ax, pA+k) ;           // aki = A(k,i)
+                        GB_GETB (bkj, Bx, pB+k) ;           // bkj = B(k,j)
+                        GB_MULTADD ( cij, aki, bkj, i, k, j ) ;        // cij += aki * bkj
                         cij_exists = true ;
                     }
                 }
             }
             #elif GB_A_IS_BITMAP && GB_B_IS_FULL
             {
-                for ( int tid = threadIdx.x ; tid < nnzA; tid+= s)
+                for ( int64_t k = threadIdx.x ; k < nnzA ; k += s)
                 { 
-                    if (Ab [pB+tid])
+                    if (Ab [pB+k])
                     {
-                        GB_GETA (aki, Ax, pA+tid) ;           // aki = A(k,i)
-                        GB_GETB (bkj, Bx, pB+tid) ;           // bkj = B(k,j)
-                        GB_MULTADD ( cij, aki, bkj ) ;        // cij += aki * bkj
+                        GB_GETA (aki, Ax, pA+k) ;           // aki = A(k,i)
+                        GB_GETB (bkj, Bx, pB+k) ;           // bkj = B(k,j)
+                        GB_MULTADD ( cij, aki, bkj, i, k, j ) ;        // cij += aki * bkj
                         cij_exists = true ;
                     }
                 }

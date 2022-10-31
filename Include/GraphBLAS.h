@@ -221,10 +221,10 @@
 
 // The version of this implementation, and the GraphBLAS API version:
 #define GxB_IMPLEMENTATION_NAME "SuiteSparse:GraphBLAS"
-#define GxB_IMPLEMENTATION_DATE "Sept 5, 2022 (beta4)"
+#define GxB_IMPLEMENTATION_DATE "Oct 21, 2022"
 #define GxB_IMPLEMENTATION_MAJOR 7
 #define GxB_IMPLEMENTATION_MINOR 3
-#define GxB_IMPLEMENTATION_SUB   0
+#define GxB_IMPLEMENTATION_SUB   1
 #define GxB_SPEC_DATE "Nov 15, 2021"
 #define GxB_SPEC_MAJOR 2
 #define GxB_SPEC_MINOR 0
@@ -1766,8 +1766,8 @@ GrB_Info GxB_IndexUnaryOp_new   // create a named user-created IndexUnaryOp
     GrB_IndexUnaryOp *op,           // handle for the new IndexUnary operator
     GxB_index_unary_function function,    // pointer to index_unary function
     GrB_Type ztype,                 // type of output z
-    GrB_Type xtype,                 // type of input x
-    GrB_Type ytype,                 // type of input y
+    GrB_Type xtype,                 // type of input x (the A(i,j) entry)
+    GrB_Type ytype,                 // type of input y (the scalar)
     const char *idxop_name,         // name of the user function
     const char *idxop_defn          // definition of the user function
 ) ;
@@ -12694,9 +12694,6 @@ GB_PUBLIC void       GxB_Iterator_get_UDT    (GxB_Iterator iterator,
 
 #ifndef RMM_WRAP_H
 #define RMM_WRAP_H
-
-#include <stddef.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
